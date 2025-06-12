@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dotenv import load_dotenv
@@ -42,12 +43,11 @@ def youtube_search(query, max_results=3):
         )
 
         # 1. Search for videos to get their IDs
-        # This part calls the search.list endpoint of the API.
         search_response = youtube.search().list(
             q=query,
-            part="id,snippet", # We need the id and basic snippet info
+            part="id,snippet",
             maxResults=max_results,
-            type="video" # We are only interested in videos
+            type="video"
         ).execute()
 
         video_ids = []
@@ -58,16 +58,13 @@ def youtube_search(query, max_results=3):
             video_ids.append(item["id"]["videoId"])
 
         if not video_ids:
-            print("No videos found for the query.")
+            print(f"No videos found for the query: {query}")
             return []
 
         # 2. Fetch detailed video metadata using the collected IDs
-        # This part calls the videos.list endpoint for more details.
-        # Calling this endpoint is more efficient than getting all details from search,
-        # and it provides richer information like statistics.
         video_response = youtube.videos().list(
             id=",".join(video_ids),
-            part="snippet,statistics" # Get snippet and statistics
+            part="snippet,statistics"
         ).execute()
 
         # Process the detailed response
@@ -95,26 +92,42 @@ def youtube_search(query, max_results=3):
         return None
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python get_results_from_youtube.py <search_query> [max_results]")
+    if len(sys.argv) != 2:
+        print('Usage: python get_results_from_youtube.py \'["query1", "query2"]\'')
         sys.exit(1)
     
-    search_query = sys.argv[1]
-    max_results = int(sys.argv[2]) if len(sys.argv) > 2 else 3
-    
-    results = youtube_search(search_query, max_results=max_results)
+    try:
+        # Parse the JSON string of queries
+        queries = json.loads(sys.argv[1])
+        if not isinstance(queries, list):
+            raise ValueError("Input must be a list of search queries")
+        
+        # Process each query
+        for query in queries:
+            results = youtube_search(query)
+            
+            if results:
+                print(f"\n=== Results for query: '{query}' ===\n")
+                # Loop through the results and print the metadata
+                for i, video in enumerate(results, 1):
+                    print(f"--- Result {i} ---")
+                    print(f"Title: {video['title']}")
+                    print(f"URL: {video['video_url']}")
+                    print(f"Channel: {video['channel_title']}")
+                    print(f"Views: {video.get('view_count', 'N/A')}")
+                    print(f"Likes: {video.get('like_count', 'N/A')}")
+                    print(f"Published Date: {video['published_at']}")
+                    print(f"Description: {video['description'][:150]}...")
+                    print("-" * 20)
+            else:
+                print(f"\nNo results found for query: '{query}'")
+            
+            print("\n" + "="*50 + "\n")  # Separator between queries
 
-    if results:
-        print(f"--- Found {len(results)} videos for '{search_query}' ---\n")
-        # Loop through the results and print the metadata
-        for i, video in enumerate(results, 1):
-            print(f"--- Result {i} ---")
-            print(f"Title: {video['title']}")
-            print(f"URL: {video['video_url']}")
-            print(f"Channel: {video['channel_title']}")
-            print(f"Views: {video.get('view_count', 'N/A')}")
-            print(f"Likes: {video.get('like_count', 'N/A')}")
-            print(f"Published Date: {video['published_at']}")
-            print(f"Description: {video['description'][:150]}...") # Uncomment to see description
-            print("-" * 20 + "\n")
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON format. Please provide queries in the format: [\"query1\", \"query2\"]")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: {str(e)}")
+        sys.exit(1)
 

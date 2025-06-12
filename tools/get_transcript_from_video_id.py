@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import ssl
+import json
 from typing import Dict, List
 
 async def fetch_transcript(session: aiohttp.ClientSession, video_id: str) -> tuple[str, str]:
@@ -28,8 +29,7 @@ async def fetch_transcript(session: aiohttp.ClientSession, video_id: str) -> tup
     
     return video_id, transcript
 
-async def get_transcripts(video_ids_string: str) -> Dict[str, str]:
-    video_ids = video_ids_string.split(",")
+async def get_transcripts(video_ids: List[str]) -> Dict[str, str]:
     transcripts = {}
     
     # Create SSL context that doesn't verify certificates
@@ -49,13 +49,29 @@ async def get_transcripts(video_ids_string: str) -> Dict[str, str]:
 
 async def main():
     import sys
-    if len(sys.argv) < 2:
-        print("Usage: python script.py <video_id1,video_id2,...>")
+    if len(sys.argv) != 2:
+        print('Usage: python get_transcript_from_video_id.py ["videoid1", "videoid2"]')
         return
     
-    video_ids_string = sys.argv[1]
-    transcripts = await get_transcripts(video_ids_string)
-    print(transcripts)
+    try:
+        # Parse the JSON string of video IDs
+        video_ids = json.loads(sys.argv[1])
+        if not isinstance(video_ids, list):
+            raise ValueError("Input must be a list of video IDs")
+        
+        transcripts = await get_transcripts(video_ids)
+        
+        # Print results in a more readable format
+        print("\n=== Transcripts ===\n")
+        for video_id, transcript in transcripts.items():
+            print(f"Video ID: {video_id}")
+            print(f"Transcript: {transcript[:200]}...")  # Show first 200 characters
+            print("-" * 50 + "\n")
+
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON format. Please provide video IDs in the format: [\"videoid1\", \"videoid2\"]")
+    except ValueError as e:
+        print(f"Error: {str(e)}")
 
 if __name__ == "__main__":
     asyncio.run(main())
