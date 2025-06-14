@@ -97,7 +97,7 @@ async def main_async(search_query: str):
     except Exception as e:
         print(f"An unexpected error occurred: {str(e)}")
 
-def main():
+def query_generation():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Generate YouTube search queries using OpenAI')
     parser.add_argument('search_query', type=str, help='The search query to generate variations for')
@@ -109,4 +109,5 @@ def main():
     asyncio.run(main_async(args.search_query))
 
 if __name__ == "__main__":
-    main()
+    query_generation()
+

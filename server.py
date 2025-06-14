@@ -26,3 +26,4 @@ async def main():
 # This is required for the entry point to work
 if __name__ == '__main__':
     asyncio.run(main())
+

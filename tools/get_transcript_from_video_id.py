@@ -47,7 +47,7 @@ async def get_transcripts(video_ids: List[str]) -> Dict[str, str]:
     
     return transcripts
 
-async def main():
+async def transcripts():
     import sys
     if len(sys.argv) != 2:
         print('Usage: python get_transcript_from_video_id.py ["videoid1", "videoid2"]')
@@ -73,5 +73,3 @@ async def main():
     except ValueError as e:
         print(f"Error: {str(e)}")
 
-if __name__ == "__main__":
-    asyncio.run(main())
